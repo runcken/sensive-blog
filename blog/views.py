@@ -18,7 +18,7 @@ def serialize_post(post):
         'slug': post.slug,
         'tags': [serialize_tag(tag) for tag in post.tags.all()],
         'first_tag_title': post.tags.all()[0].title,
-        'likes_amount': get_likes_count(post),
+        # 'likes_amount': get_likes_count(post),
     }
 
 
@@ -29,22 +29,27 @@ def serialize_tag(tag):
     }
 
 
-def get_likes_count(post):
-    if hasattr(post, 'likes_count'):
-        return post.likes_count
-    return post.likes.count()
+# def get_likes_count(post):
+#     if hasattr(post, 'likes_count'):
+#         return post.likes_count
+#     return post.likes.count()
     
 
 def index(request):
-    posts_with_likes = Post.objects.annotate(likes_count=Count('likes'))
+    posts_with_likes = Post.objects.prefetch_related('author').annotate(
+        likes_count=Count('likes')
+    )
     most_popular_posts = posts_with_likes.order_by('-likes_count')[:5]
 
-    fresh_posts = Post.objects.order_by('published_at')
+    fresh_posts = Post.objects.prefetch_related('author').order_by(
+        'published_at'
+    )
     most_fresh_posts = list(fresh_posts)[-5:]
 
     # tags = Tag.objects.all()
     # popular_tags = sorted(tags, key=get_related_posts_count)
     # most_popular_tags = popular_tags[-5:]
+    
     popular_tags = Tag.objects.annotate(count=Count('posts'))
     most_popular_tags = popular_tags.order_by('-count')[:5]
 
