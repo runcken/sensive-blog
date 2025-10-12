@@ -40,6 +40,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'sensive_blog.urls'
 
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -99,6 +100,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
