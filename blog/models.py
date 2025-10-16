@@ -6,10 +6,34 @@ from django.db.models import Count
 
 class PostQuerySet(models.QuerySet):
     def popular(self):
-        return self.annotate(likes_count=Count('likes')).order_by('-likes_count')
+        return self.annotate(likes_count=Count('likes')) \
+                   .order_by('-likes_count')
+
+    def fetch_with_comments_count(self):
+        posts_ids = [post.id for post in self]
+        posts_with_comments = Post.objects.filter(
+            id__in=posts_ids
+        ).annotate(comments_count=Count('comments'))
+        ids_and_comments = posts_with_comments \
+                    .values_list('id', 'comments_count')
+        comments_count = dict(ids_and_comments) 
+        for post in self:
+            post.comments_count = comments_count[post.id]
+        return list(self)
 
 
-class TagQuerySet(models.QuerySet):
+class PostManager(models.Manager):
+    def get_queryset(self):
+        return PostQuerySet(self.model)
+
+    def popular(self):
+        return self.get_queryset().popular()
+
+    def fetch_with_comments_count(self):
+        return self.get_queryset().fetch_with_comments_count()
+
+
+class TagQuerySet(models.Manager):
     def popular(self):
         popular_tags = self.annotate(posts_count=Count('posts'))
         return popular_tags.order_by('-posts_count')
@@ -36,7 +60,7 @@ class Post(models.Model):
         'Tag',
         related_name='posts',
         verbose_name='Теги')
-    # objects = PostQuerySet.as_manager()
+    objects = PostManager()
 
     def __str__(self):
         return self.title
@@ -52,7 +76,7 @@ class Post(models.Model):
 
 class Tag(models.Model):
     title = models.CharField('Тег', max_length=20, unique=True)
-    objects = TagQuerySet.as_manager()
+    objects = TagQuerySet()
 
     def __str__(self):
         return self.title
