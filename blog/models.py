@@ -1,7 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 
 
 class PostQuerySet(models.QuerySet):
@@ -11,16 +11,23 @@ class PostQuerySet(models.QuerySet):
 
     def fetch_with_comments_count(self):
         posts_ids = [post.id for post in self]
+        comments_prefetch = Prefetch(
+            'comments',
+            queryset=Comment.objects.only('id', 'post')
+        )
         posts_with_comments = Post.objects.filter(
             id__in=posts_ids
-        ).annotate(comments_count=Count('comments'))
-        ids_and_comments = posts_with_comments.values_list(
-            'id',
-            'comments_count'
-        )
-        comments_count = dict(ids_and_comments) 
+        ).prefetch_related(comments_prefetch)
+        # ids_and_comments = posts_with_comments.values_list(
+        #     'id',
+        #     'comments_count'
+        # )
+        # comments_count = dict(ids_and_comments)
+        for post in posts_with_comments:
+            post.comments_count = post.comments.count()
+        comments_count_dict = {post.id: post.comments_count for post in posts_with_comments}
         for post in self:
-            post.comments_count = comments_count[post.id]
+            post.comments_count = comments_count_dict[post.id]
         return list(self)
 
 
@@ -35,9 +42,9 @@ class PostManager(models.Manager):
         return self.get_queryset().fetch_with_comments_count()
 
 
-class TagQuerySet(models.Manager):
+class TagQuerySet(models.QuerySet):
     def popular(self):
-        return self.annotate(posts_count=Count('posts'))
+        return self.annotate(posts_count=Count('posts')).order_by('-posts_count')
 
 
 class Post(models.Model):
@@ -77,7 +84,7 @@ class Post(models.Model):
 
 class Tag(models.Model):
     title = models.CharField('Тег', max_length=20, unique=True)
-    objects = TagQuerySet()
+    objects = TagQuerySet.as_manager()
 
     def __str__(self):
         return self.title
