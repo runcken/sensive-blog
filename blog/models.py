@@ -18,14 +18,11 @@ class PostQuerySet(models.QuerySet):
         posts_with_comments = Post.objects.filter(
             id__in=posts_ids
         ).prefetch_related(comments_prefetch)
-        # ids_and_comments = posts_with_comments.values_list(
-        #     'id',
-        #     'comments_count'
-        # )
-        # comments_count = dict(ids_and_comments)
         for post in posts_with_comments:
             post.comments_count = post.comments.count()
-        comments_count_dict = {post.id: post.comments_count for post in posts_with_comments}
+        comments_count_dict = {
+            post.id: post.comments_count for post in posts_with_comments
+        }
         for post in self:
             post.comments_count = comments_count_dict[post.id]
         return list(self)
@@ -44,7 +41,8 @@ class PostManager(models.Manager):
 
 class TagQuerySet(models.QuerySet):
     def popular(self):
-        return self.annotate(posts_count=Count('posts')).order_by('-posts_count')
+        return self.annotate(posts_count=Count('posts')) \
+                   .order_by('-posts_count')
 
 
 class Post(models.Model):
@@ -116,7 +114,6 @@ class Comment(models.Model):
     text = models.TextField('Текст комментария')
     published_at = models.DateTimeField('Дата и время публикации')
 
-
     def __str__(self):
         return f'{self.author.username} under {self.post.title}'
 
@@ -124,5 +121,3 @@ class Comment(models.Model):
         ordering = ['published_at']
         verbose_name = 'комментарий'
         verbose_name_plural = 'комментарии'
-
-
