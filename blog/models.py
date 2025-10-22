@@ -14,27 +14,27 @@ class TagQuerySet(models.QuerySet):
 
 class PostQuerySet(models.QuerySet):
     def popular(self):
-        return self.annotate(likes_count=Count('likes', distict=True)) \
+        return self.annotate(likes_count=Count('likes', distinct=True)) \
                    .order_by('-likes_count')
 
     def fetch_with_comments_count(self):
-        # return self.annotate(comments_count=Count('comments', distinct=True))
-        posts_ids = [post.id for post in self]
-        comments_prefetch = Prefetch(
-            'comments',
-            queryset=Comment.objects.only('id', 'post')
-        )
-        posts_with_comments = Post.objects.filter(
-            id__in=posts_ids
-        ).prefetch_related(comments_prefetch)
-        for post in posts_with_comments:
-            post.comments_count = post.comments.count()
-        comments_count_dict = {
-            post.id: post.comments_count for post in posts_with_comments
-        }
-        for post in self:
-            post.comments_count = comments_count_dict[post.id]
-        return self
+        return self.annotate(comments_count=Count('comments', distinct=True))
+    #     posts_ids = [post.id for post in self]
+    #     comments_prefetch = Prefetch(
+    #         'comments',
+    #         queryset=Comment.objects.only('id', 'post')
+    #     )
+    #     posts_with_comments = Post.objects.filter(
+    #         id__in=posts_ids
+    #     ).prefetch_related(comments_prefetch)
+    #     for post in posts_with_comments:
+    #         post.comments_count = post.comments.count()
+    #     comments_count_dict = {
+    #         post.id: post.comments_count for post in posts_with_comments
+    #     }
+    #     for post in self:
+    #         post.comments_count = comments_count_dict[post.id]
+    #     return self
 
     def prefetch_tags_with_posts_count(self):
         return self.prefetch_related(
